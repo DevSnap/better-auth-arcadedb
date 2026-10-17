@@ -55,9 +55,9 @@ After the first manual publication, configure a trusted publisher in the npm pac
 
 The included `.github/workflows/publish.yml` is manually dispatched from `main` with an existing `vX.Y.Z` tag. Configure the GitHub environment `npm` before enabling this flow. It uses GitHub-hosted runners, `permissions: contents: read` and `id-token: write`, and Node 24 with `registry-url: https://registry.npmjs.org`. Trusted publishing currently requires **npm >=11.5.1 and Node >=22.14.0**; the workflow checks the npm version. The package's Node >=22 runtime requirement is separate from these publishing-tool requirements.
 
-The job resolves the tag to a commit on `main`, verifies the manifest version and installs dependencies with pnpm's frozen lockfile. It reruns checks, build, package validation and real-database integration on that exact commit. It then packs the release with pnpm, rechecks the remote tag and publishes the tarball with npm using OIDC without an npm write token. Ensure `package.json` has `repository.url` matching `https://github.com/DevSnap/better-auth-arcadedb.git` (normally `git+https://github.com/DevSnap/better-auth-arcadedb.git` in npm metadata). Publish each version only once. The workflow does not run automatically on pushes or tags.
+The job resolves the tag to a commit on `main`, verifies the manifest version and installs dependencies with pnpm's frozen lockfile. It reruns checks, build, package validation and real-database integration on that exact commit. It then packs the release with pnpm, rechecks the remote tag and stages the tarball with `npm stage publish` using OIDC without an npm write token. Ensure `package.json` has `repository.url` matching `https://github.com/DevSnap/better-auth-arcadedb.git` (normally `git+https://github.com/DevSnap/better-auth-arcadedb.git` in npm metadata). Stage each version only once. The workflow does not run automatically on pushes or tags.
 
-In npm's trusted-publisher settings, allow direct `npm publish` if that is the workflow's command. Newly created configurations must complete a successful publish within two days or be recreated. npm automatically attaches provenance for supported OIDC publication from a public GitHub repository to a public package.
+In npm's trusted-publisher settings, keep the `npm stage publish` permission; direct publish and dist-tag management are not required. After the workflow succeeds, a maintainer reviews and approves the staged version in npm, completing the requested authentication/2FA. Only approval makes the version publicly available and updates `latest`. The CLI alternative is `npm stage approve <stage-id>` from an authenticated maintainer session. A staged version reserves its version number, so do not rerun a successful staging job. Newly created trusted-publisher configurations must be validated before the deadline shown by npm. The workflow submits provenance alongside the staged package.
 
 ## Versioning with Changesets
 
@@ -68,7 +68,7 @@ pnpm changeset
 pnpm changeset status
 ```
 
-To prepare the next release, run `pnpm version:packages`. This consumes the pending changesets, updates `package.json` and `CHANGELOG.md`, synchronizes `pnpm-lock.yaml` and formats the files. Review and commit that release preparation, run all verification commands, then create the matching `vX.Y.Z` tag. Dispatch `Publish npm` from `main` with that tag after configuring OIDC.
+To prepare the next release, run `pnpm version:packages`. This consumes the pending changesets, updates `package.json` and `CHANGELOG.md`, synchronizes `pnpm-lock.yaml` and formats the files. Review and commit that release preparation, run all verification commands, then create the matching `vX.Y.Z` tag. Dispatch `Publish npm` from `main` with that tag after configuring OIDC, then approve the staged version in npm.
 
 Changesets owns versioning and changelog generation; the workflow owns publication. Do not run `changeset publish` alongside the OIDC workflow. The initial `0.1.0` notes were finalized manually; use Changesets for later versions.
 

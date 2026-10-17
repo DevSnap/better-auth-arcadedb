@@ -64,14 +64,14 @@ jobs:
       - run: pnpm test:integration
       - name: Pack verified release
         run: pnpm pack
-      - name: Verify remote tag and publish with OIDC
+      - name: Verify remote tag and stage with OIDC
         env:
           RELEASE_TAG: ${{ inputs.tag }}
         run: |
           git fetch origin "refs/tags/$RELEASE_TAG"
           test "$(git rev-parse 'FETCH_HEAD^{commit}')" = "$RELEASE_SHA"
           VERSION="${RELEASE_TAG#v}"
-          npm publish "better-auth-arcadedb-$VERSION.tgz" --access public --provenance
+          npm stage publish "better-auth-arcadedb-$VERSION.tgz" --access public --tag latest --provenance
       - name: Show database logs on failure
         if: failure()
         run: docker compose logs
