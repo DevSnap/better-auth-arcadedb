@@ -22,7 +22,7 @@ pnpm pack
 `prepack` builds `dist`. Inspect the archive file list: it should contain the built JavaScript and declarations, TypeScript sources for source maps, package metadata, README, changelog and license, without local environment files. `test:package` verifies the packed artifact in an isolated consumer. You can also install the actual archive and peers in a separate ESM consumer project:
 
 ```sh
-npm install /path/to/better-auth-arcadedb/better-auth-arcadedb-0.1.0.tgz better-auth@1.7.10 @arcadedb/driver@0.3.0
+npm install /path/to/better-auth-arcadedb/better-auth-arcadedb-1.0.0.tgz better-auth@1.7.10 @arcadedb/driver@0.3.0
 node --input-type=module -e 'import { arcadeDBAdapter } from "better-auth-arcadedb"; console.log(typeof arcadeDBAdapter)'
 ```
 

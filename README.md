@@ -1,8 +1,14 @@
 # better-auth-arcadedb
 
+[![npm version](https://img.shields.io/npm/v/better-auth-arcadedb)](https://www.npmjs.com/package/better-auth-arcadedb)
+
 An ESM TypeScript database adapter for [Better Auth](https://better-auth.com), built on the official [`@arcadedb/driver`](https://github.com/ArcadeData/arcadedb-drivers).
 
-Version: **0.2.0**.
+## API stability
+
+Starting with 1.0.0, `arcadeDBAdapter` and the exported `ArcadeDBAdapterConfig` type form the stable public API, including driver-based configuration, string and serial IDs, and explicit SQL schema generation. Future incompatible changes to this API require a major release. The compatibility requirements and storage/schema limitations documented below continue to apply.
+
+Upgrading from 0.2.0 to 1.0.0 requires no API or database schema changes.
 
 ## Features
 
@@ -27,8 +33,10 @@ Use ESM imports. Better Auth-generated string IDs, UUID strings and auto-increme
 
 ## Installation
 
+Available on [npm](https://www.npmjs.com/package/better-auth-arcadedb). The badge above shows the latest published version.
+
 ```sh
-npm install better-auth-arcadedb@0.2.0 better-auth@1.7.10 @arcadedb/driver@0.3.0
+npm install better-auth-arcadedb@1.0.0 better-auth@1.7.10 @arcadedb/driver@0.3.0
 ```
 
 ### Build a local tarball
@@ -46,7 +54,7 @@ pnpm pack
 `pnpm pack` builds the ESM package through `prepack`. Repository development uses the exact pnpm version in `packageManager` and Node 22.18+ or 24.11+ (Node 24 recommended). The published package supports Node >=22. In your consuming project's directory, install the archive and peer dependencies:
 
 ```sh
-npm install /path/to/better-auth-arcadedb/better-auth-arcadedb-0.2.0.tgz
+npm install /path/to/better-auth-arcadedb/better-auth-arcadedb-1.0.0.tgz
 npm install better-auth@1.7.10 @arcadedb/driver@0.3.0
 ```
 

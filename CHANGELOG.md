@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.0
+
+### Major Changes
+
+- Promote the existing adapter API to the first stable release. The public API consists of `arcadeDBAdapter` and `ArcadeDBAdapterConfig`, including driver-based configuration, string and serial IDs, and explicit SQL schema generation. No API or storage changes are required when upgrading from 0.2.0; the documented compatibility requirements and limitations continue to apply. Future incompatible changes to this public API will require a major release.
+
+  Add a live npm version badge and a direct package link to the README.
+
 ## 0.2.0
 
 ### Minor Changes
