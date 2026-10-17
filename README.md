@@ -16,12 +16,12 @@ Local development version: **0.1.0**. This project has not been published to npm
 
 ## Compatibility
 
-| Component | Verified version |
-| --- | --- |
-| Better Auth / test utilities | 1.7.10 |
-| `@arcadedb/driver` | 0.3.0 |
-| ArcadeDB | 26.10.2 |
-| Node.js | >=22 (CI: 22 and 24) |
+| Component                    | Verified version     |
+| ---------------------------- | -------------------- |
+| Better Auth / test utilities | 1.7.10               |
+| `@arcadedb/driver`           | 0.3.0                |
+| ArcadeDB                     | 26.10.2              |
+| Node.js                      | >=22 (CI: 22 and 24) |
 
 Use ESM imports. Auto-incrementing numeric IDs (`generateId: "serial"`) are not supported. Better Auth-generated string IDs and UUID strings are supported and are distinct from ArcadeDB RIDs.
 
@@ -32,11 +32,12 @@ Version **0.1.0** is being prepared in [DevSnap/better-auth-arcadedb](https://gi
 ```sh
 git clone https://github.com/DevSnap/better-auth-arcadedb.git
 cd better-auth-arcadedb
-npm ci
-npm pack
+corepack enable
+pnpm install --frozen-lockfile
+pnpm pack
 ```
 
-`npm pack` builds the ESM package through `prepack`. In your consuming project's directory, install the archive and peer dependencies:
+`pnpm pack` builds the ESM package through `prepack`. Repository development uses the exact pnpm version in `packageManager` and Node 22.18+ or 24.11+ (Node 24 recommended). The published package supports Node >=22. In your consuming project's directory, install the archive and peer dependencies:
 
 ```sh
 npm install /path/to/better-auth-arcadedb/better-auth-arcadedb-0.1.0.tgz
@@ -84,9 +85,9 @@ For a runnable checkout example, see [examples/basic](https://github.com/DevSnap
 
 ### Options
 
-| Option | Default | Description |
-| --- | --- | --- |
-| `usePlural` | `false` | Apply Better Auth plural model naming. |
+| Option      | Default | Description                                                                                        |
+| ----------- | ------- | -------------------------------------------------------------------------------------------------- |
+| `usePlural` | `false` | Apply Better Auth plural model naming.                                                             |
 | `debugLogs` | `false` | Better Auth debug option: boolean or per-operation settings. Logs can contain authentication data. |
 
 Configure URL, authentication and custom `fetch` on the official driver client.
@@ -141,17 +142,19 @@ Outside explicit transactions, single-record updates and atomic operations retry
 ## Development
 
 ```sh
-npm ci
+pnpm install --frozen-lockfile
 docker compose up -d --wait
-npm run check
-npm run test:integration
-npm run lint:package
-npm run test:package
-npm pack --dry-run
+pnpm check
+pnpm test:integration
+pnpm lint:package
+pnpm test:package
+pnpm pack
 docker compose stop
 ```
 
 The Compose database uses local-only port `2480` and development credentials. Integration tests create uniquely named disposable databases and drop them afterward. The test account must have database create/drop permissions. To target a dedicated external test server, set `ARCADEDB_URL`, `ARCADEDB_USERNAME` and `ARCADEDB_PASSWORD`.
+
+Tooling responsibilities: pnpm manages dependencies; Oxlint and Oxfmt handle linting and formatting; `tsc` checks types; tsdown produces the ESM bundle and declarations; Vitest runs tests; Changesets prepares versions and changelogs. npm publishes verified tarballs through GitHub Actions trusted publishing.
 
 See [CONTRIBUTING.md](https://github.com/DevSnap/better-auth-arcadedb/blob/main/CONTRIBUTING.md), [architecture decisions](https://github.com/DevSnap/better-auth-arcadedb/blob/main/docs/architecture.md) and the [manual first release / subsequent OIDC publishing guide](https://github.com/DevSnap/better-auth-arcadedb/blob/main/docs/releasing.md).
 

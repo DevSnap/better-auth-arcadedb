@@ -12,6 +12,10 @@ Initial versions verified against published artifacts: Better Auth/test-utils 1.
 
 The public entry point exports only `arcadeDBAdapter` and `ArcadeDBAdapterConfig`.
 
+## Toolchain and distribution
+
+pnpm owns dependency resolution and the committed lockfile. Oxlint checks code, Oxfmt formats files and `tsc --noEmit` checks types independently. tsdown cleans and builds the single ESM entry point plus bundled declarations and source maps; Better Auth and the ArcadeDB driver remain external peer dependencies. Vitest separates unit tests from real-database integration tests. The tarball smoke test installs the pnpm-produced archive into an isolated npm consumer, checking public imports, types and declaration maps. Changesets prepares versions/changelogs; GitHub Actions publishes verified tarballs with npm OIDC.
+
 ## SQL and types
 
 Identifiers are backtick-quoted with explicit rejection of unsupported characters and metadata names. Values use named bound parameters. Connectors are grouped left-to-right. Null equality uses `IS NULL`; missing nullable properties therefore participate in null comparisons. Empty membership lists compile to constant expressions.
