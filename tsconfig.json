@@ -10,5 +10,11 @@
     "types": ["node"],
     "noEmit": true
   },
-  "include": ["src", "tests", "examples", "vitest.config.ts"]
+  "include": [
+    "src",
+    "tests",
+    "examples",
+    "vitest.config.ts",
+    "tsdown.config.ts"
+  ]
 }

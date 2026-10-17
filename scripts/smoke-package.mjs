@@ -12,24 +12,29 @@ import {
   writeFile,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
+import { createRequire } from "node:module";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
-const npm = process.env.npm_execpath;
-assert.ok(npm, "Run this smoke test with npm run test:package");
+const pnpm = process.env.npm_execpath;
+assert.ok(pnpm, "Run this smoke test with pnpm test:package");
 const manifest = JSON.parse(await readFile(join(root, "package.json"), "utf8"));
-const lock = JSON.parse(
-  await readFile(join(root, "package-lock.json"), "utf8"),
-);
+const require = createRequire(import.meta.url);
 const temporary = await mkdtemp(join(tmpdir(), "better-auth-arcadedb-smoke-"));
+// pnpm-specific npm_config_* values are not valid npm CLI options.
+const consumerEnv = Object.fromEntries(
+  Object.entries(process.env).filter(
+    ([name]) => !name.toLowerCase().startsWith("npm_config_"),
+  ),
+);
 
 function runNpm(args, cwd) {
-  execFileSync(process.execPath, [npm, ...args], {
+  execFileSync("npm", args, {
     cwd,
     stdio: "inherit",
     timeout: 240_000,
-    env: { ...process.env, NODE_PATH: "" },
+    env: { ...consumerEnv, NODE_PATH: "" },
   });
 }
 
@@ -61,8 +66,16 @@ try {
   const outside = relative(await realpath(root), await realpath(temporary));
   assert.ok(outside.startsWith("..") || isAbsolute(outside));
 
-  // npm pack runs prepack, including the clean build, and creates a real archive.
-  runNpm(["pack", "--pack-destination", temporary], root);
+  // Pack through pnpm to exercise the repository's real prepack lifecycle.
+  execFileSync(
+    process.execPath,
+    [pnpm, "pack", "--pack-destination", temporary],
+    {
+      cwd: root,
+      stdio: "inherit",
+      timeout: 120_000,
+    },
+  );
   const archives = (await readdir(temporary)).filter((name) =>
     name.endsWith(".tgz"),
   );
@@ -78,7 +91,9 @@ try {
     dependencies[name] = version;
   }
   for (const name of ["typescript", "@types/node"]) {
-    dependencies[name] = lock.packages[`node_modules/${name}`].version;
+    dependencies[name] = JSON.parse(
+      await readFile(require.resolve(`${name}/package.json`), "utf8"),
+    ).version;
   }
   await writeFile(
     join(temporary, "package.json"),

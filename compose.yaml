@@ -9,7 +9,14 @@ services:
         -Darcadedb.server.defaultDatabases=better_auth[root]
         -Darcadedb.server.httpIncomingHost=0.0.0.0
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--spider", "http://localhost:2480/api/v1/health"]
+      test:
+        [
+          "CMD",
+          "wget",
+          "--quiet",
+          "--spider",
+          "http://localhost:2480/api/v1/health",
+        ]
       interval: 5s
       timeout: 5s
       retries: 30

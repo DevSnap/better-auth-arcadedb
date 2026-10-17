@@ -2,6 +2,8 @@ import type { CleanedWhere } from "better-auth/adapters";
 
 /** Backticks and control characters are rejected rather than ambiguously escaped. */
 export function identifier(name: string): string {
+  // Reject control characters in identifiers before constructing SQL.
+  // oxlint-disable-next-line no-control-regex
   if (!name || /[`\u0000-\u001f\u007f]/u.test(name) || name.startsWith("@")) {
     throw new TypeError(
       `Unsupported ArcadeDB identifier: ${JSON.stringify(name)}`,
