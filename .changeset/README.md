@@ -9,7 +9,7 @@ changesets, updates package versions and changelogs, synchronizes the pnpm
 lockfile and formats the repository. Review and commit those changes before
 tagging the verified release.
 
-The initial unpublished `0.1.0` release is already described in `CHANGELOG.md`;
+The initial `0.1.0` release is already described in `CHANGELOG.md`;
 this tooling migration does not request an additional version bump.
 
 Changesets manages versioning only. Publication uses the manual GitHub Actions

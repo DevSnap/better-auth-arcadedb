@@ -44,6 +44,6 @@ Use a `!` and a `BREAKING CHANGE:` footer when appropriate. Keep commits focused
 
 ## Release preparation
 
-Version `0.1.0` is being prepared and has not been published to npm. Keep release notes under `Unreleased` until the release coordinator chooses the release date. Use a local tarball to verify consumer installation before publication.
+Version `0.1.0` is the initial release. Use Changesets for subsequent user-visible changes and verify consumer installation with a local tarball before publication.
 
 Follow [docs/releasing.md](docs/releasing.md) for package checks, the manual first publication and subsequent GitHub Actions OIDC setup for `DevSnap/better-auth-arcadedb` with `publish.yml`. The guide describes the publishing workflow requirements; configure and verify that workflow before using it. Version tags, GitHub releases and npm publication are maintainer release actions.

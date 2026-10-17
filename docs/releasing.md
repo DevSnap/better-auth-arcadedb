@@ -2,7 +2,7 @@
 
 Repository: [DevSnap/better-auth-arcadedb](https://github.com/DevSnap/better-auth-arcadedb).
 
-Version `0.1.0` is being prepared; it has not been published to npm. Keep `CHANGELOG.md` under `Unreleased` until the release coordinator selects the date. Registry installation instructions in the README apply only after the first successful publication.
+Version `0.1.0` is the initial release, dated 2026-10-17. Subsequent releases are prepared with Changesets and published through the workflow below.
 
 ## Verify the release candidate
 
@@ -70,6 +70,6 @@ pnpm changeset status
 
 To prepare the next release, run `pnpm version:packages`. This consumes the pending changesets, updates `package.json` and `CHANGELOG.md`, synchronizes `pnpm-lock.yaml` and formats the files. Review and commit that release preparation, run all verification commands, then create the matching `vX.Y.Z` tag. Dispatch `Publish npm` from `main` with that tag after configuring OIDC.
 
-Changesets owns versioning and changelog generation; the workflow owns publication. Do not run `changeset publish` alongside the OIDC workflow. The initial unpublished `0.1.0` notes remain under `Unreleased` until the maintainer finalizes that first release; this tooling migration does not bump the version.
+Changesets owns versioning and changelog generation; the workflow owns publication. Do not run `changeset publish` alongside the OIDC workflow. The initial `0.1.0` notes were finalized manually; use Changesets for later versions.
 
 See [npm's current trusted-publisher documentation](https://docs.npmjs.com/trusted-publishers/) for the latest setup requirements.

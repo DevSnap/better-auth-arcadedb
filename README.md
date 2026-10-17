@@ -2,7 +2,7 @@
 
 An ESM TypeScript database adapter for [Better Auth](https://better-auth.com), built on the official [`@arcadedb/driver`](https://github.com/ArcadeData/arcadedb-drivers).
 
-Local development version: **0.1.0**. This project has not been published to npm.
+Version: **0.1.0**.
 
 ## Features
 
@@ -25,9 +25,15 @@ Local development version: **0.1.0**. This project has not been published to npm
 
 Use ESM imports. Auto-incrementing numeric IDs (`generateId: "serial"`) are not supported. Better Auth-generated string IDs and UUID strings are supported and are distinct from ArcadeDB RIDs.
 
-## Install before the first release
+## Installation
 
-Version **0.1.0** is being prepared in [DevSnap/better-auth-arcadedb](https://github.com/DevSnap/better-auth-arcadedb). Install a tarball from the checkout now:
+```sh
+npm install better-auth-arcadedb@0.1.0 better-auth@1.7.10 @arcadedb/driver@0.3.0
+```
+
+### Build a local tarball
+
+To install directly from the [repository](https://github.com/DevSnap/better-auth-arcadedb):
 
 ```sh
 git clone https://github.com/DevSnap/better-auth-arcadedb.git
@@ -43,16 +49,6 @@ pnpm pack
 npm install /path/to/better-auth-arcadedb/better-auth-arcadedb-0.1.0.tgz
 npm install better-auth@1.7.10 @arcadedb/driver@0.3.0
 ```
-
-### Registry installation — after the first npm release only
-
-Once a maintainer has published `0.1.0`, consumers will be able to run:
-
-```sh
-npm install better-auth-arcadedb@0.1.0 better-auth@1.7.10 @arcadedb/driver@0.3.0
-```
-
-This registry command is for after publication; use the tarball instructions above today.
 
 ## Configure Better Auth
 
