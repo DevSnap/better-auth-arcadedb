@@ -1,0 +1,15 @@
+services:
+  arcadedb:
+    image: arcadedata/arcadedb:26.10.2
+    ports:
+      - "127.0.0.1:2480:2480"
+    environment:
+      JAVA_OPTS: >-
+        -Darcadedb.server.rootPassword=arcadedb-test-password
+        -Darcadedb.server.defaultDatabases=better_auth[root]
+        -Darcadedb.server.httpIncomingHost=0.0.0.0
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--spider", "http://localhost:2480/api/v1/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 30

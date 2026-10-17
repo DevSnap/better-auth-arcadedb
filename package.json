@@ -1,0 +1,54 @@
+{
+  "name": "better-auth-arcadedb",
+  "version": "0.1.0",
+  "description": "ArcadeDB database adapter for Better Auth using the official HTTP driver.",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=22"
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md"
+  ],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check .",
+    "format": "biome check --write .",
+    "test": "vitest run --project unit",
+    "test:integration": "vitest run --project integration",
+    "check": "npm run lint && npm run typecheck && npm test && npm run build",
+    "prepack": "npm run build"
+  },
+  "peerDependencies": {
+    "better-auth": "~1.7.10",
+    "@arcadedb/driver": "~0.3.0"
+  },
+  "devDependencies": {
+    "@arcadedb/driver": "0.3.0",
+    "@better-auth/test-utils": "1.7.10",
+    "@biomejs/biome": "^2.0.0",
+    "@types/node": "^22.0.0",
+    "better-auth": "1.7.10",
+    "typescript": "^5.9.0",
+    "vitest": "^4.0.0"
+  },
+  "keywords": [
+    "better-auth",
+    "arcadedb",
+    "adapter",
+    "authentication",
+    "typescript"
+  ]
+}
