@@ -2,7 +2,7 @@
 
 An ESM TypeScript database adapter for [Better Auth](https://better-auth.com), built on the official [`@arcadedb/driver`](https://github.com/ArcadeData/arcadedb-drivers).
 
-Version: **0.1.0**.
+Version: **0.2.0**.
 
 ## Features
 
@@ -28,7 +28,7 @@ Use ESM imports. Better Auth-generated string IDs, UUID strings and auto-increme
 ## Installation
 
 ```sh
-npm install better-auth-arcadedb@0.1.0 better-auth@1.7.10 @arcadedb/driver@0.3.0
+npm install better-auth-arcadedb@0.2.0 better-auth@1.7.10 @arcadedb/driver@0.3.0
 ```
 
 ### Build a local tarball
@@ -46,7 +46,7 @@ pnpm pack
 `pnpm pack` builds the ESM package through `prepack`. Repository development uses the exact pnpm version in `packageManager` and Node 22.18+ or 24.11+ (Node 24 recommended). The published package supports Node >=22. In your consuming project's directory, install the archive and peer dependencies:
 
 ```sh
-npm install /path/to/better-auth-arcadedb/better-auth-arcadedb-0.1.0.tgz
+npm install /path/to/better-auth-arcadedb/better-auth-arcadedb-0.2.0.tgz
 npm install better-auth@1.7.10 @arcadedb/driver@0.3.0
 ```
 

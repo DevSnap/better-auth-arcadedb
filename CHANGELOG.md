@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.0
+
+### Minor Changes
+
+- 46db4ec: Support Better Auth's `generateId: "serial"` with persistent per-model counters, transactional allocation, numeric reference schemas and bounded concurrency retries. Preserve string IDs in Better Auth output and validate safe-integer limits.
+
+### Patch Changes
+
+- 46db4ec: Resolve physical field metadata using canonical model keys, preserve nullable serial predicates across Better Auth conversions, reject serial ID mutations and reference increments, and validate counter/insert response invariants. Add isolated concurrency, rollback and mapping regressions and document compatibility boundaries.
+
 ## 0.1.0 — 2026-10-17
 
 ### Fixed
