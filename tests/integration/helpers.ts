@@ -23,11 +23,6 @@ export async function migrate(
 ) {
   const adapter = arcadeDBAdapter(db, { usePlural })(options);
   const schema = await adapter.createSchema!(options);
-  for (const command of schema.code
-    .split(";\n")
-    .map((s) => s.trim())
-    .filter(Boolean)) {
-    await db.command({ language: "sql", command });
-  }
+  await db.command({ language: "sqlscript", command: schema.code });
   return adapter;
 }
