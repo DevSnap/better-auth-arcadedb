@@ -23,7 +23,7 @@ Version: **0.1.0**.
 | ArcadeDB                     | 26.10.2              |
 | Node.js                      | >=22 (CI: 22 and 24) |
 
-Use ESM imports. Auto-incrementing numeric IDs (`generateId: "serial"`) are not supported. Better Auth-generated string IDs and UUID strings are supported and are distinct from ArcadeDB RIDs.
+Use ESM imports. Better Auth-generated string IDs, UUID strings and auto-incrementing numeric IDs (`generateId: "serial"`) are supported. Application IDs are distinct from ArcadeDB RIDs.
 
 ## Installation
 
@@ -88,6 +88,29 @@ For a runnable checkout example, see [examples/basic](https://github.com/DevSnap
 
 Configure URL, authentication and custom `fetch` on the official driver client.
 
+### Auto-incrementing IDs
+
+```ts
+const auth = betterAuth({
+  database: arcadeDBAdapter(db),
+  advanced: { database: { generateId: "serial" } },
+});
+```
+
+Generate and apply the schema using these same options. Serial IDs and scalar references to IDs use `LONG` properties; Better Auth returns them as strings to the application. Ordinary numeric fields remain `DOUBLE`.
+
+The generated SQL initializes one persistent counter per model in the reserved `__better_auth_serial` type. Sequences start at 1. The adapter updates the counter and inserts the document in the same driver-managed transaction, joining an existing adapter transaction when present. Reapplying the schema preserves counters. Models with disabled migrations require externally provisioned properties, indexes and a counter row with their physical model name and initial value.
+
+Explicit IDs accepted through Better Auth's `forceAllowId` advance the counter when larger. IDs and references must be safe integers; automatically allocated IDs stop at `Number.MAX_SAFE_INTEGER`. Deleting a document does not reset its counter. Rollbacks undo both the allocation and insert, so rolled-back IDs can be reused; gapless numbering is not guaranteed.
+
+Serial IDs are immutable after creation: `update`, `updateMany` and `incrementOne.set` reject ID changes. `incrementOne` rejects increments of IDs and ID references; references can be reassigned or cleared through ordinary updates. Nullable reference equality uses `IS NULL` and remains distinct from numeric zero, including under concurrent calls. Membership follows SQL null semantics: `NOT IN` does not include null/missing references.
+
+Better Auth 1.7.10 documents an upstream limitation of `serial`: single-use checks keyed by deterministic string IDs (including some SAML, DPoP and `private_key_jwt` paths) do not retain that guarantee with numeric IDs. Use string IDs for those paths. The numeric adapter suite and basic auth-flow suite do not establish compatibility with every plugin.
+
+Counter contention is per model. Standalone serial creates retry confirmed concurrency conflicts up to 31 times with bounded backoff and jitter, including a server-confirmed duplicate specifically on the automatically generated ID index. Explicit duplicate IDs, other unique-index violations and network failures propagate. Application transaction callbacks are never replayed.
+
+Allocation is performed by the adapter rather than triggers: on ArcadeDB 26.10.2, the documented multi-statement SQL counter trigger fails, updating an unpersisted `$record` fails, and JavaScript triggers fail under concurrent access to their shared GraalVM context. Direct database inserts must supply IDs and maintain counters themselves. Apply schema changes separately from live writes; changing an existing database between string and serial IDs requires a dedicated migration of IDs, references and counters.
+
 ## Schema generation
 
 The adapter implements Better Auth's `createSchema` hook for the CLI `generate` command. You can also generate SQL directly from your exact Better Auth options:
@@ -133,7 +156,7 @@ DDL is additive (`IF NOT EXISTS`), including `id` uniqueness, indexes for `uniqu
 
 `consumeOne` uses `DELETE … RETURN BEFORE … LIMIT 1`; `incrementOne` uses a guarded `UPDATE … RETURN AFTER … LIMIT 1`. Missing/null counters start at zero. Deltas must be finite numbers; setting and incrementing the same field is rejected.
 
-Outside explicit transactions, single-record updates and atomic operations retry recognized optimistic concurrency conflicts up to seven times. Other errors propagate. Inside a transaction, a conflict aborts the transaction; the adapter does not replay the application callback. Network failures and ambiguous commit failures are never automatically retried.
+Outside explicit transactions, single-record updates and atomic operations retry recognized optimistic concurrency conflicts up to seven times. Serial creates use the allocation-specific retry policy described above. Other errors propagate. Inside a transaction, a conflict aborts the transaction; the adapter does not replay the application callback. Network failures and ambiguous commit failures are never automatically retried.
 
 ## Development
 
