@@ -18,7 +18,7 @@ Identifiers are backtick-quoted with explicit rejection of unsupported character
 
 Text matching uses Java-pattern quoted literals with embedded quote-terminator escaping. User input cannot add regex structure. Pagination is validated and rendered as integers.
 
-HTTP JSON cannot preserve JavaScript `Date` objects directly. Dates use ISO strings with factory conversion. JSON fields use an explicit string codec for all JSON kinds: the factory's default non-native JSON codec alone only serializes object inputs, so it is insufficient for JSON scalar strings. Arrays declared as array fields remain native lists.
+HTTP JSON cannot preserve JavaScript `Date` objects directly. Dates use ISO strings with factory conversion. JSON fields use an explicit SQL-boundary string codec for all JSON kinds: assignments and equality encode one value, while membership encodes each candidate independently. The factory's default non-native JSON codec alone only serializes object inputs, so it is insufficient for JSON scalar strings. Arrays declared as array fields remain native lists. JSON equality compares serialized values, including object key order.
 
 ## Atomicity and transactions
 

@@ -109,17 +109,22 @@ describe("native atomic operations", () => {
     ).toBe(16);
   });
   it("commits multiple writes and rolls back all writes on error", async () => {
+    await adapter.create({
+      model: "counter",
+      data: { name: "rollback-guard", remaining: 3 },
+    });
     await adapter.transaction(async (tx) => {
       await tx.create({ model: "counter", data: { name: "commit" } });
     });
     await expect(
       adapter.transaction(async (tx) => {
         await tx.create({ model: "counter", data: { name: "rollback" } });
-        await tx.incrementOne({
+        const incremented = await tx.incrementOne<{ remaining: number }>({
           model: "counter",
-          where: [{ field: "name", value: "guard" }],
+          where: [{ field: "name", value: "rollback-guard" }],
           increment: { remaining: 10 },
         });
+        expect(incremented?.remaining).toBe(13);
         throw new Error("rollback requested");
       }),
     ).rejects.toThrow("rollback requested");
@@ -139,10 +144,10 @@ describe("native atomic operations", () => {
       (
         await adapter.findOne<{ remaining: number }>({
           model: "counter",
-          where: [{ field: "name", value: "guard" }],
+          where: [{ field: "name", value: "rollback-guard" }],
         })
       )?.remaining,
-    ).toBe(0);
+    ).toBe(3);
   });
   it("round-trips nested JSON, nulls and literal regex terminators", async () => {
     const payload = { list: [1, null, { enabled: true }], text: "test" };

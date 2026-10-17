@@ -8,6 +8,7 @@ export function generateSchema(
 ): string {
   const statements: string[] = [];
   for (const [key, table] of Object.entries(tables)) {
+    if (table.disableMigrations) continue;
     const model = identifier(getModelName(key));
     statements.push(`CREATE DOCUMENT TYPE ${model} IF NOT EXISTS;`);
     const fields: typeof table.fields = {
@@ -37,6 +38,18 @@ export function generateSchema(
           `CREATE INDEX IF NOT EXISTS ON ${model} (${field}) ${attributes.unique ? "UNIQUE" : "NOTUNIQUE"};`,
         );
       }
+    }
+    for (const index of table.indexes ?? []) {
+      const name = index.name === undefined ? "" : ` ${identifier(index.name)}`;
+      const columns = index.fields.map((field) => {
+        const attributes = fields[field];
+        if (!attributes)
+          throw new TypeError(`Unknown index field ${model}.${field}`);
+        return identifier(attributes.fieldName ?? field);
+      });
+      statements.push(
+        `CREATE INDEX${name} IF NOT EXISTS ON ${model} (${columns.join(", ")}) ${index.unique ? "UNIQUE" : "NOTUNIQUE"};`,
+      );
     }
   }
   return `${statements.join("\n")}\n`;

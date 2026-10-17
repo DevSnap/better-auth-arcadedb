@@ -74,11 +74,6 @@ export function arcadeDBAdapter(
         supportsJSON: true,
         supportsArrays: true,
         supportsBooleans: true,
-        // JSON can contain objects, arrays or scalars; one STRING encoding preserves all.
-        customTransformInput: ({ data, fieldAttributes }) =>
-          fieldAttributes.type === "json" && data != null
-            ? JSON.stringify(data)
-            : data,
         customTransformOutput: ({ data, fieldAttributes }) =>
           fieldAttributes.type === "json" && typeof data === "string"
             ? JSON.parse(data)
@@ -88,7 +83,20 @@ export function arcadeDBAdapter(
           : (callback) =>
               database.transaction((tx) => callback(build(tx, options, true))),
       },
-      adapter: ({ getModelName, getFieldName, getDefaultModelName }) => {
+      adapter: ({
+        getModelName,
+        getFieldName,
+        getDefaultModelName,
+        getFieldAttributes,
+      }) => {
+        // Encode at the bind boundary so membership keeps its outer candidate list.
+        const sqlFor = (model: string) =>
+          new SQLBuilder((field, value) =>
+            value != null &&
+            getFieldAttributes({ model, field }).type === "json"
+              ? JSON.stringify(value)
+              : value,
+          );
         const command = (sql: string, builder: SQLBuilder) =>
           database.command<Row>({
             language: "sql",
@@ -107,7 +115,7 @@ export function arcadeDBAdapter(
           inTransaction ? operation() : atomic(operation);
         return {
           async create({ model, data }) {
-            const sql = new SQLBuilder();
+            const sql = sqlFor(model);
             const assignments = sql.assignments(data);
             if (!assignments.length)
               throw new TypeError("Cannot insert an empty record");
@@ -123,7 +131,7 @@ export function arcadeDBAdapter(
             return result;
           },
           async findOne({ model, where }) {
-            const sql = new SQLBuilder();
+            const sql = sqlFor(model);
             return clean(
               rows(
                 await query(
@@ -145,7 +153,7 @@ export function arcadeDBAdapter(
             pagination(limit, "limit");
             if (offset !== undefined) pagination(offset, "offset");
             if (limit === 0) return [];
-            const sql = new SQLBuilder();
+            const sql = sqlFor(model);
             const projection = select?.length
               ? ` ${select.map((field) => identifier(getFieldName({ model: modelKey ?? getDefaultModelName(model), field }))).join(", ")}`
               : "";
@@ -164,7 +172,7 @@ export function arcadeDBAdapter(
             return rows(await query(statement, sql)).map((row) => clean(row)!);
           },
           async count({ model, where }) {
-            const sql = new SQLBuilder();
+            const sql = sqlFor(model);
             return affected(
               await query(
                 `SELECT count(*) AS count FROM ${identifier(model)}${sql.where(where)}`,
@@ -174,7 +182,7 @@ export function arcadeDBAdapter(
           },
           async update({ model, where, update }) {
             if (!where.length) return null;
-            const sql = new SQLBuilder();
+            const sql = sqlFor(model);
             const assignments = sql.assignments(update as Row);
             if (!assignments.length)
               return clean(
@@ -191,7 +199,7 @@ export function arcadeDBAdapter(
             );
           },
           async updateMany({ model, where, update }) {
-            const sql = new SQLBuilder();
+            const sql = sqlFor(model);
             const assignments = sql.assignments(update);
             if (!assignments.length) return 0;
             return affected(
@@ -203,14 +211,14 @@ export function arcadeDBAdapter(
           },
           async delete({ model, where }) {
             if (!where.length) return;
-            const sql = new SQLBuilder();
+            const sql = sqlFor(model);
             await command(
               `DELETE FROM ${identifier(model)}${sql.where(where)} LIMIT 1`,
               sql,
             );
           },
           async deleteMany({ model, where }) {
-            const sql = new SQLBuilder();
+            const sql = sqlFor(model);
             return affected(
               await command(
                 `DELETE FROM ${identifier(model)}${sql.where(where)}`,
@@ -220,7 +228,7 @@ export function arcadeDBAdapter(
           },
           async consumeOne({ model, where }) {
             if (!where.length) return null;
-            const sql = new SQLBuilder();
+            const sql = sqlFor(model);
             const statement = `DELETE FROM ${identifier(model)} RETURN BEFORE${sql.where(where)} LIMIT 1`;
             return write(async () =>
               clean(rows(await command(statement, sql))[0]),
@@ -228,7 +236,7 @@ export function arcadeDBAdapter(
           },
           async incrementOne({ model, where, increment, set }) {
             if (!where.length) return null;
-            const sql = new SQLBuilder();
+            const sql = sqlFor(model);
             const assignments = sql.assignments(set ?? {});
             for (const [field, delta] of Object.entries(increment)) {
               if (!Number.isFinite(delta))

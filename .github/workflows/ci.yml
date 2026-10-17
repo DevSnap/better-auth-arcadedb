@@ -7,9 +7,15 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   verify:
+    name: Verify (Node ${{ matrix.node }})
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
@@ -22,10 +28,10 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run check
-      - run: docker compose up -d --wait
-      - run: npm run test:integration
-      - run: npm pack --dry-run
       - run: npm run lint:package
+      - run: npm run test:package
+      - run: docker compose up -d --wait --wait-timeout 180
+      - run: npm run test:integration
       - name: Show database logs on failure
         if: failure()
         run: docker compose logs

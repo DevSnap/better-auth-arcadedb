@@ -1,0 +1,82 @@
+name: Publish npm
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag (for example v0.1.1)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-npm
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Resolve release tag
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          RELEASE_SHA=$(git rev-parse --verify "refs/tags/$RELEASE_TAG^{commit}")
+          git merge-base --is-ancestor "$RELEASE_SHA" origin/main
+          git checkout --detach "$RELEASE_SHA"
+          echo "RELEASE_SHA=$RELEASE_SHA" >> "$GITHUB_ENV"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      - name: Verify release metadata and publishing tools
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          import { readFileSync } from 'node:fs';
+          import { execFileSync } from 'node:child_process';
+          const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
+          const lock = JSON.parse(readFileSync('package-lock.json', 'utf8'));
+          assert.equal(pkg.name, 'better-auth-arcadedb');
+          assert.equal(`v${pkg.version}`, process.env.RELEASE_TAG);
+          assert.equal(lock.version, pkg.version);
+          assert.equal(lock.packages[''].version, pkg.version);
+          const [major, minor, patch] = execFileSync('npm', ['--version'], { encoding: 'utf8' }).trim().split('.').map(Number);
+          assert.ok(major > 11 || major === 11 && (minor > 5 || minor === 5 && patch >= 1), 'npm >=11.5.1 required');
+          JS
+      - run: npm ci
+      - run: npm run check
+      - run: npm run lint:package
+      - run: npm run test:package
+      - run: docker compose up -d --wait --wait-timeout 180
+      - run: npm run test:integration
+      - name: Pack verified release
+        run: npm pack
+      - name: Verify remote tag and publish with OIDC
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          git fetch origin "refs/tags/$RELEASE_TAG"
+          test "$(git rev-parse 'FETCH_HEAD^{commit}')" = "$RELEASE_SHA"
+          VERSION="${RELEASE_TAG#v}"
+          npm publish "better-auth-arcadedb-$VERSION.tgz" --access public --provenance
+      - name: Show database logs on failure
+        if: failure()
+        run: docker compose logs
+      - name: Stop test database
+        if: always()
+        run: docker compose down -v

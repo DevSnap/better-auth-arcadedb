@@ -13,6 +13,13 @@ export function identifier(name: string): string {
 export class SQLBuilder {
   readonly params: Record<string, unknown> = {};
 
+  constructor(
+    private readonly encode: (field: string, value: unknown) => unknown = (
+      _field,
+      value,
+    ) => value,
+  ) {}
+
   bind(value: unknown): string {
     const key = `p${Object.keys(this.params).length}`;
     this.params[key] = value;
@@ -22,7 +29,10 @@ export class SQLBuilder {
   assignments(data: Record<string, unknown>): string[] {
     return Object.entries(data)
       .filter(([, value]) => value !== undefined)
-      .map(([field, value]) => `${identifier(field)} = ${this.bind(value)}`);
+      .map(
+        ([field, value]) =>
+          `${identifier(field)} = ${this.bind(this.encode(field, value))}`,
+      );
   }
 
   where(clauses: CleanedWhere[] = []): string {
@@ -57,13 +67,14 @@ export class SQLBuilder {
       if (!Array.isArray(value))
         throw new TypeError(`${operator} requires an array`);
       if (!value.length) return operator === "in" ? "1 = 0" : "1 = 1";
-      return `${column} ${operator === "not_in" ? "NOT IN" : "IN"} ${this.bind(value)}`;
+      return `${column} ${operator === "not_in" ? "NOT IN" : "IN"} ${this.bind(value.map((candidate) => this.encode(field, candidate)))}`;
     }
+    const encoded = this.encode(field, value);
     if (["contains", "starts_with", "ends_with"].includes(operator)) {
-      if (typeof value !== "string")
+      if (typeof encoded !== "string")
         throw new TypeError(`${operator} requires a string`);
       // Java Pattern quoting: literal input, including %, _, regex and embedded \E.
-      const literal = `\\Q${value.replaceAll("\\E", "\\E\\\\E\\Q")}\\E`;
+      const literal = `\\Q${encoded.replaceAll("\\E", "\\E\\\\E\\Q")}\\E`;
       const pattern = `(?s)${operator === "starts_with" ? "" : ".*"}${literal}${operator === "ends_with" ? "" : ".*"}`;
       return `${column} MATCHES ${this.bind(pattern)}`;
     }
@@ -77,7 +88,7 @@ export class SQLBuilder {
     };
     const sqlOperator = operators[operator as keyof typeof operators];
     if (!sqlOperator) throw new TypeError(`Unsupported operator: ${operator}`);
-    return `${column} ${sqlOperator} ${this.bind(value)}`;
+    return `${column} ${sqlOperator} ${this.bind(encoded)}`;
   }
 }
 

@@ -21,23 +21,37 @@ Local development version: **0.1.0**. This project has not been published to npm
 | Better Auth / test utilities | 1.7.10 |
 | `@arcadedb/driver` | 0.3.0 |
 | ArcadeDB | 26.10.2 |
-| Node.js | 22 and 24 |
+| Node.js | >=22 (CI: 22 and 24) |
 
 Use ESM imports. Auto-incrementing numeric IDs (`generateId: "serial"`) are not supported. Better Auth-generated string IDs and UUID strings are supported and are distinct from ArcadeDB RIDs.
 
-## Local installation
+## Install before the first release
+
+Version **0.1.0** is being prepared in [DevSnap/better-auth-arcadedb](https://github.com/DevSnap/better-auth-arcadedb). Install a tarball from the checkout now:
 
 ```sh
+git clone https://github.com/DevSnap/better-auth-arcadedb.git
+cd better-auth-arcadedb
 npm ci
-npm run build
+npm pack
 ```
 
-For another local project, build an archive with `npm pack`, install the resulting archive there, and install the peer dependencies:
+`npm pack` builds the ESM package through `prepack`. In your consuming project's directory, install the archive and peer dependencies:
 
 ```sh
 npm install /path/to/better-auth-arcadedb/better-auth-arcadedb-0.1.0.tgz
 npm install better-auth@1.7.10 @arcadedb/driver@0.3.0
 ```
+
+### Registry installation — after the first npm release only
+
+Once a maintainer has published `0.1.0`, consumers will be able to run:
+
+```sh
+npm install better-auth-arcadedb@0.1.0 better-auth@1.7.10 @arcadedb/driver@0.3.0
+```
+
+This registry command is for after publication; use the tarball instructions above today.
 
 ## Configure Better Auth
 
@@ -65,6 +79,8 @@ export const auth = betterAuth({
 ```
 
 Create the database and apply the generated schema before serving requests. The adapter does not create or alter schema during authentication.
+
+For a runnable checkout example, see [examples/basic](https://github.com/DevSnap/better-auth-arcadedb/tree/main/examples/basic): Docker creates `better_auth`, then separate scripts generate and apply the schema. Those examples import `src` for checkout development; consuming applications use the package import shown above.
 
 ### Options
 
@@ -100,12 +116,14 @@ await db.command({
 });
 ```
 
-DDL is additive (`IF NOT EXISTS`), including `id` uniqueness and indexes for `unique`, `index` and reference fields. Changing existing property types or constraints requires a separate migration. Schema generation does not execute DDL. Required/default/enum validation is handled by Better Auth rather than generated database constraints.
+Use `sqlscript` to apply the complete multi-statement file. The [apply script](https://github.com/DevSnap/better-auth-arcadedb/blob/main/examples/basic/apply-schema.ts) makes this an explicit step, separate from generation and authentication startup.
+
+DDL is additive (`IF NOT EXISTS`), including `id` uniqueness, indexes for `unique`, `index` and reference fields, and table-level indexes (including compound uniqueness). Plugin models with `disableMigration: true` are omitted. Changing existing property types or constraints requires a separate migration. Schema generation does not execute DDL. Required/default/enum validation is handled by Better Auth rather than generated database constraints.
 
 ## Storage and semantics
 
 - Dates are canonical UTC ISO strings, converted back to `Date` by Better Auth.
-- JSON fields are encoded as JSON strings, preserving nested objects, arrays and scalars; they are not queryable as native embedded documents.
+- JSON fields are encoded as JSON strings, preserving nested objects, arrays and scalars; they are not queryable as native embedded documents. Equality and membership compare the serialized value (including object key order), rather than structural JSON equality.
 - Typed array fields use native ArcadeDB lists; booleans use native boolean properties.
 - Reference fields hold application IDs. The adapter does not enforce foreign keys or database cascade deletes; application/Better Auth operations manage related records.
 - Relations use Better Auth's fallback queries, including when its joins option is enabled. They are not single-query native joins.
@@ -127,13 +145,15 @@ npm ci
 docker compose up -d --wait
 npm run check
 npm run test:integration
+npm run lint:package
+npm run test:package
 npm pack --dry-run
-docker compose down -v
+docker compose stop
 ```
 
 The Compose database uses local-only port `2480` and development credentials. Integration tests create uniquely named disposable databases and drop them afterward. The test account must have database create/drop permissions. To target a dedicated external test server, set `ARCADEDB_URL`, `ARCADEDB_USERNAME` and `ARCADEDB_PASSWORD`.
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) and [architecture decisions](docs/architecture.md).
+See [CONTRIBUTING.md](https://github.com/DevSnap/better-auth-arcadedb/blob/main/CONTRIBUTING.md), [architecture decisions](https://github.com/DevSnap/better-auth-arcadedb/blob/main/docs/architecture.md) and the [manual first release / subsequent OIDC publishing guide](https://github.com/DevSnap/better-auth-arcadedb/blob/main/docs/releasing.md).
 
 ## License
 

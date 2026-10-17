@@ -3,6 +3,14 @@
   "version": "0.1.0",
   "description": "ArcadeDB database adapter for Better Auth using the official HTTP driver.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DevSnap/better-auth-arcadedb.git"
+  },
+  "homepage": "https://github.com/DevSnap/better-auth-arcadedb#readme",
+  "bugs": {
+    "url": "https://github.com/DevSnap/better-auth-arcadedb/issues"
+  },
   "type": "module",
   "sideEffects": false,
   "engines": {
@@ -10,6 +18,8 @@
   },
   "files": [
     "dist",
+    "src",
+    "CHANGELOG.md",
     "LICENSE",
     "README.md"
   ],
@@ -22,13 +32,15 @@
     }
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "clean": "node scripts/clean.mjs",
+    "build": "npm run clean && tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
     "lint": "biome check .",
     "lint:package": "publint",
     "format": "biome check --write .",
     "test": "vitest run --project unit",
     "test:integration": "vitest run --project integration",
+    "test:package": "node scripts/smoke-package.mjs",
     "check": "npm run lint && npm run typecheck && npm test && npm run build",
     "prepack": "npm run build"
   },
