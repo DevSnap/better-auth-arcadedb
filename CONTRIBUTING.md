@@ -1,5 +1,25 @@
 # Contributing
 
+Contributions are welcome: bug reports, feature proposals, documentation and example improvements, regression tests, compatibility checks, and code fixes.
+
+## Issues and proposals
+
+Use [GitHub Issues](https://github.com/DevSnap/better-auth-arcadedb/issues) to report bugs or propose improvements. Search existing issues before opening a new one.
+
+- For a bug report, include the expected and actual behavior, reproduction steps or a minimal example, and the versions of Node.js, Better Auth, `@arcadedb/driver`, ArcadeDB, and this adapter. Include relevant errors or logs with credentials, tokens, and personal data removed.
+- For a feature request, describe the use case, the current limitation, and the proposed behavior.
+- Open an issue to discuss substantial changes before implementing them. Small fixes and documentation corrections can go directly to a pull request.
+
+## Pull requests and permissions
+
+1. Fork the repository into your GitHub account and create a branch for your change.
+2. Set up the development environment below and make a focused change following the project conventions.
+3. Run `pnpm check` and the additional checks relevant to your change, including `pnpm test:integration` for database behavior.
+4. Open a pull request against `main`. Explain the change, link any related issue, and list the checks you ran.
+5. Address review feedback. A maintainer reviews the proposal and decides whether to merge it.
+
+Opening issues or pull requests does not grant write access to this repository. Contributors can push changes to their own forks; pushing to this repository or merging pull requests requires explicitly granted write permissions and is subject to any configured branch protections. Version tags, GitHub releases, and npm publication are maintainer release actions.
+
 ## Setup
 
 Use Node.js 22.18+ or 24.11+ and the exact pnpm version in `packageManager`. `.nvmrc` selects Node 24. Run `corepack enable` once to activate pnpm; if Corepack is unavailable, install the pinned pnpm version from `package.json`.

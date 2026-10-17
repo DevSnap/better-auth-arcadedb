@@ -175,7 +175,13 @@ The Compose database uses local-only port `2480` and development credentials. In
 
 Tooling responsibilities: pnpm manages dependencies; Oxlint and Oxfmt handle linting and formatting; `tsc` checks types; tsdown produces the ESM bundle and declarations; Vitest runs tests; Changesets prepares versions and changelogs. npm publishes verified tarballs through GitHub Actions trusted publishing.
 
-See [CONTRIBUTING.md](https://github.com/DevSnap/better-auth-arcadedb/blob/main/CONTRIBUTING.md), [architecture decisions](https://github.com/DevSnap/better-auth-arcadedb/blob/main/docs/architecture.md) and the [manual first release / subsequent OIDC publishing guide](https://github.com/DevSnap/better-auth-arcadedb/blob/main/docs/releasing.md).
+## Contributing
+
+Bug reports, feature proposals, documentation improvements, tests, and code contributions are welcome. Search [GitHub Issues](https://github.com/DevSnap/better-auth-arcadedb/issues) before opening a new report or proposal. Discuss substantial changes in an issue first; small fixes can go directly to a pull request from your fork.
+
+See [CONTRIBUTING.md](https://github.com/DevSnap/better-auth-arcadedb/blob/main/CONTRIBUTING.md) for setup, checks, and the pull request process. Maintainers review contributions before merging.
+
+For technical background, see the [architecture decisions](https://github.com/DevSnap/better-auth-arcadedb/blob/main/docs/architecture.md) and the [manual first release / subsequent OIDC publishing guide](https://github.com/DevSnap/better-auth-arcadedb/blob/main/docs/releasing.md).
 
 ## License
 
