@@ -7,6 +7,72 @@ import { generateSchema } from "../../src/schema.js";
 const db = createClient({ baseUrl: "http://arcadedb.test" }).db("test");
 
 describe("schema generation", () => {
+  it("generates serial ids, numeric id references and isolated persistent counters", () => {
+    const code = generateSchema(
+      {
+        entry: {
+          modelName: "entry",
+          fields: {
+            owner: {
+              type: "string",
+              fieldName: "owner_id",
+              references: { model: "user", field: "id" },
+            },
+            slug: {
+              type: "string",
+              references: { model: "user", field: "slug" },
+            },
+            score: { type: "number" },
+            owners: {
+              type: "string[]",
+              references: { model: "user", field: "id" },
+            },
+          },
+        },
+        external: {
+          modelName: "external",
+          disableMigrations: true,
+          fields: {},
+        },
+      },
+      (model) => model,
+      true,
+    );
+    expect(code).toContain("CREATE PROPERTY `entry`.`id` IF NOT EXISTS LONG;");
+    expect(code).toContain(
+      "CREATE PROPERTY `entry`.`owner_id` IF NOT EXISTS LONG;",
+    );
+    expect(code).toContain(
+      "CREATE PROPERTY `entry`.`slug` IF NOT EXISTS STRING;",
+    );
+    expect(code).toContain(
+      "CREATE PROPERTY `entry`.`score` IF NOT EXISTS DOUBLE;",
+    );
+    expect(code).toContain(
+      "CREATE PROPERTY `entry`.`owners` IF NOT EXISTS LIST;",
+    );
+    expect(code).toContain("WHERE `model` = 'entry'");
+    expect(code).not.toContain("external");
+    expect(code).not.toContain("CREATE TRIGGER");
+  });
+
+  it("reserves the internal counter type and escapes physical names as literals", () => {
+    expect(() =>
+      generateSchema(
+        { entry: { modelName: "entry", fields: {} } },
+        () => "__better_auth_serial",
+        true,
+      ),
+    ).toThrow("Reserved");
+    const code = generateSchema(
+      { entry: { modelName: "entry", fields: {} } },
+      () => "a'b\\c",
+      true,
+    );
+    expect(code).toContain("WHERE `model` = 'a\\'b\\\\c'");
+    expect(code).toContain("CREATE DOCUMENT TYPE `a'b\\c`");
+  });
+
   it("omits plugin models that disable migrations", async () => {
     const adapter = arcadeDBAdapter(db)({
       plugins: [
