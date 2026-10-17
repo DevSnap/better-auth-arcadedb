@@ -37,6 +37,7 @@ jobs:
           git merge-base --is-ancestor "$RELEASE_SHA" origin/main
           git checkout --detach "$RELEASE_SHA"
           echo "RELEASE_SHA=$RELEASE_SHA" >> "$GITHUB_ENV"
+      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -50,22 +51,19 @@ jobs:
           import { readFileSync } from 'node:fs';
           import { execFileSync } from 'node:child_process';
           const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
-          const lock = JSON.parse(readFileSync('package-lock.json', 'utf8'));
           assert.equal(pkg.name, 'better-auth-arcadedb');
           assert.equal(`v${pkg.version}`, process.env.RELEASE_TAG);
-          assert.equal(lock.version, pkg.version);
-          assert.equal(lock.packages[''].version, pkg.version);
           const [major, minor, patch] = execFileSync('npm', ['--version'], { encoding: 'utf8' }).trim().split('.').map(Number);
           assert.ok(major > 11 || major === 11 && (minor > 5 || minor === 5 && patch >= 1), 'npm >=11.5.1 required');
           JS
-      - run: npm ci
-      - run: npm run check
-      - run: npm run lint:package
-      - run: npm run test:package
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check
+      - run: pnpm lint:package
+      - run: pnpm test:package
       - run: docker compose up -d --wait --wait-timeout 180
-      - run: npm run test:integration
+      - run: pnpm test:integration
       - name: Pack verified release
-        run: npm pack
+        run: pnpm pack
       - name: Verify remote tag and publish with OIDC
         env:
           RELEASE_TAG: ${{ inputs.tag }}

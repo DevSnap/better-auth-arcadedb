@@ -22,16 +22,17 @@ jobs:
         node: [22, 24]
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
-          cache: npm
-      - run: npm ci
-      - run: npm run check
-      - run: npm run lint:package
-      - run: npm run test:package
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check
+      - run: pnpm lint:package
+      - run: pnpm test:package
       - run: docker compose up -d --wait --wait-timeout 180
-      - run: npm run test:integration
+      - run: pnpm test:integration
       - name: Show database logs on failure
         if: failure()
         run: docker compose logs
