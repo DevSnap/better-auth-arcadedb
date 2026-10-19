@@ -21,6 +21,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     environment: npm
+    outputs:
+      release-sha: ${{ steps.resolve.outputs.sha }}
     permissions:
       contents: read
       id-token: write
@@ -29,6 +31,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Resolve release tag
+        id: resolve
         env:
           RELEASE_TAG: ${{ inputs.tag }}
         run: |
@@ -37,6 +40,7 @@ jobs:
           git merge-base --is-ancestor "$RELEASE_SHA" origin/main
           git checkout --detach "$RELEASE_SHA"
           echo "RELEASE_SHA=$RELEASE_SHA" >> "$GITHUB_ENV"
+          echo "sha=$RELEASE_SHA" >> "$GITHUB_OUTPUT"
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
@@ -64,6 +68,13 @@ jobs:
       - run: pnpm test:integration
       - name: Pack verified release
         run: pnpm pack
+      - name: Preserve verified tarball for GitHub Release
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-tarball
+          path: better-auth-arcadedb-*.tgz
+          if-no-files-found: error
+          retention-days: 30
       - name: Verify remote tag and stage with OIDC
         env:
           RELEASE_TAG: ${{ inputs.tag }}
@@ -78,3 +89,31 @@ jobs:
       - name: Stop test database
         if: always()
         run: docker compose down -v
+
+  github-release:
+    name: Create GitHub Release
+    needs: publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-tarball
+          path: ${{ runner.temp }}/release-tarball
+      - name: Publish release with the staged tarball
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ inputs.tag }}
+          RELEASE_SHA: ${{ needs.publish.outputs.release-sha }}
+          RELEASE_DIRECTORY: ${{ runner.temp }}/release-tarball
+        run: node scripts/github-release.mjs

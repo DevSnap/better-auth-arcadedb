@@ -28,6 +28,7 @@ jobs:
           node-version: ${{ matrix.node }}
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: node --test scripts/github-release.test.mjs
       - run: pnpm check
       - run: pnpm lint:package
       - run: pnpm test:package

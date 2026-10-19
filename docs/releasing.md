@@ -59,6 +59,16 @@ The job resolves the tag to a commit on `main`, verifies the manifest version an
 
 In npm's trusted-publisher settings, keep the `npm stage publish` permission; direct publish and dist-tag management are not required. After the workflow succeeds, a maintainer reviews and approves the staged version in npm, completing the requested authentication/2FA. Only approval makes the version publicly available and updates `latest`. The CLI alternative is `npm stage approve <stage-id>` from an authenticated maintainer session. A staged version reserves its version number, so do not rerun a successful staging job. Newly created trusted-publisher configurations must be validated before the deadline shown by npm. The workflow submits provenance alongside the staged package.
 
+### Automatic GitHub Release
+
+After successful npm staging, a separate `Create GitHub Release` job creates the release from the existing tag, using that commit's changelog section and attaching the exact tarball submitted to npm. The tarball is preserved as a workflow artifact for 30 days before staging. Only the GitHub Release job receives `contents: write`; npm staging retains `contents: read` and `id-token: write`.
+
+The order is **tag and verification → npm staging → GitHub Release → maintainer approval on npm**. GitHub Releases represent versioned source and downloadable artifacts, so they can be public before npm approval. Their distribution notes explicitly distinguish the GitHub Release from npm availability. No registry polling is required.
+
+The job first creates a draft, uploads the tarball, then publishes the release. A new stable version becomes Latest unless a higher stable GitHub release already exists. Historical releases cannot displace a newer Latest. Existing release notes are preserved, and missing tarballs can be uploaded on a retry without duplicating releases.
+
+If GitHub Release creation fails after npm staging succeeds, use **Re-run failed jobs** in the same Actions run to retry only `Create GitHub Release`. Do not use **Re-run all jobs** or dispatch `Publish npm` again for a successfully staged version. The retry needs the preserved artifact; after its 30-day retention expires, recover the original tarball from npm once approved and create the GitHub Release manually from the existing tag and changelog. Never move an existing version tag or rebuild a replacement artifact for an already published version.
+
 ## Versioning with Changesets
 
 After the initial `0.1.0` publication, include a changeset with each user-visible change:
