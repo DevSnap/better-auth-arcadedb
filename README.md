@@ -6,7 +6,7 @@ An ESM TypeScript database adapter for [Better Auth](https://better-auth.com), b
 
 ## API stability
 
-Starting with 1.0.0, `arcadeDBAdapter` and the exported `ArcadeDBAdapterConfig` type form the stable public API, including driver-based configuration, string and serial IDs, and explicit SQL schema generation. Future incompatible changes to this API require a major release. The compatibility requirements and storage/schema limitations documented below continue to apply.
+`arcadeDBAdapter` and `ArcadeDBAdapterConfig` are stable as of 1.0.0. Breaking changes require a major release.
 
 Upgrading from 0.2.0 to 1.0.0 requires no API or database schema changes.
 
@@ -32,8 +32,6 @@ Upgrading from 0.2.0 to 1.0.0 requires no API or database schema changes.
 Use ESM imports. Better Auth-generated string IDs, UUID strings and auto-incrementing numeric IDs (`generateId: "serial"`) are supported. Application IDs are distinct from ArcadeDB RIDs.
 
 ## Installation
-
-Available on [npm](https://www.npmjs.com/package/better-auth-arcadedb). The badge above shows the latest published version.
 
 ```sh
 npm install better-auth-arcadedb@1.0.0 better-auth@1.7.10 @arcadedb/driver@0.3.0
@@ -85,7 +83,7 @@ export const auth = betterAuth({
 
 Create the database and apply the generated schema before serving requests. The adapter does not create or alter schema during authentication.
 
-For a runnable checkout example, see [examples/basic](https://github.com/DevSnap/better-auth-arcadedb/tree/main/examples/basic): Docker creates `better_auth`, then separate scripts generate and apply the schema. Those examples import `src` for checkout development; consuming applications use the package import shown above.
+For a runnable example with Docker and schema setup, see [examples/basic](https://github.com/DevSnap/better-auth-arcadedb/tree/main/examples/basic).
 
 ### Options
 
@@ -107,17 +105,15 @@ const auth = betterAuth({
 
 Generate and apply the schema using these same options. Serial IDs and scalar references to IDs use `LONG` properties; Better Auth returns them as strings to the application. Ordinary numeric fields remain `DOUBLE`.
 
-The generated SQL initializes one persistent counter per model in the reserved `__better_auth_serial` type. Sequences start at 1. The adapter updates the counter and inserts the document in the same driver-managed transaction, joining an existing adapter transaction when present. Reapplying the schema preserves counters. Models with disabled migrations require externally provisioned properties, indexes and a counter row with their physical model name and initial value.
+The generated SQL creates a counter per model in the reserved `__better_auth_serial` type. IDs start at 1; allocation and insertion share a transaction. Reapplying the schema preserves counters. Models with disabled migrations need their properties, indexes and counter rows provisioned separately.
 
-Explicit IDs accepted through Better Auth's `forceAllowId` advance the counter when larger. IDs and references must be safe integers; automatically allocated IDs stop at `Number.MAX_SAFE_INTEGER`. Deleting a document does not reset its counter. Rollbacks undo both the allocation and insert, so rolled-back IDs can be reused; gapless numbering is not guaranteed.
+IDs and references must be safe integers, up to `Number.MAX_SAFE_INTEGER`. Explicit IDs accepted through Better Auth's `forceAllowId` advance the counter when larger. Deleting a document does not reset its counter. Rolled-back IDs can be reused; numbering is not guaranteed to be gapless.
 
-Serial IDs are immutable after creation: `update`, `updateMany` and `incrementOne.set` reject ID changes. `incrementOne` rejects increments of IDs and ID references; references can be reassigned or cleared through ordinary updates. Nullable reference equality uses `IS NULL` and remains distinct from numeric zero, including under concurrent calls. Membership follows SQL null semantics: `NOT IN` does not include null/missing references.
+Serial IDs cannot be changed after creation. References can be reassigned or cleared, but not incremented. Null references remain distinct from zero; `NOT IN` does not include null/missing references.
 
-Better Auth 1.7.10 documents an upstream limitation of `serial`: single-use checks keyed by deterministic string IDs (including some SAML, DPoP and `private_key_jwt` paths) do not retain that guarantee with numeric IDs. Use string IDs for those paths. The numeric adapter suite and basic auth-flow suite do not establish compatibility with every plugin.
+Use string IDs for single-use checks keyed by deterministic IDs, including some SAML, DPoP and `private_key_jwt` paths: Better Auth 1.7.10 documents that these checks lose their single-use guarantee with `serial`. Not every plugin has been tested with numeric IDs.
 
-Counter contention is per model. Standalone serial creates retry confirmed concurrency conflicts up to 31 times with bounded backoff and jitter, including a server-confirmed duplicate specifically on the automatically generated ID index. Explicit duplicate IDs, other unique-index violations and network failures propagate. Application transaction callbacks are never replayed.
-
-Allocation is performed by the adapter rather than triggers: on ArcadeDB 26.10.2, the documented multi-statement SQL counter trigger fails, updating an unpersisted `$record` fails, and JavaScript triggers fail under concurrent access to their shared GraalVM context. Direct database inserts must supply IDs and maintain counters themselves. Apply schema changes separately from live writes; changing an existing database between string and serial IDs requires a dedicated migration of IDs, references and counters.
+Direct database inserts must supply IDs and maintain counters themselves. Apply schema changes separately from live writes. Switching an existing database between string and serial IDs requires migrating IDs, references and counters. See [serial ID allocation](https://github.com/DevSnap/better-auth-arcadedb/blob/main/docs/architecture.md#serial-id-allocation) for implementation and retry details.
 
 ## Schema generation
 
@@ -164,7 +160,7 @@ DDL is additive (`IF NOT EXISTS`), including `id` uniqueness, indexes for `uniqu
 
 `consumeOne` uses `DELETE … RETURN BEFORE … LIMIT 1`; `incrementOne` uses a guarded `UPDATE … RETURN AFTER … LIMIT 1`. Missing/null counters start at zero. Deltas must be finite numbers; setting and incrementing the same field is rejected.
 
-Outside explicit transactions, single-record updates and atomic operations retry recognized optimistic concurrency conflicts up to seven times. Serial creates use the allocation-specific retry policy described above. Other errors propagate. Inside a transaction, a conflict aborts the transaction; the adapter does not replay the application callback. Network failures and ambiguous commit failures are never automatically retried.
+Outside explicit transactions, single-record updates and atomic operations retry recognized optimistic concurrency conflicts up to seven times. Standalone serial creates retry allocation conflicts up to 31 times with backoff and jitter. Other errors propagate. Inside a transaction, a conflict aborts the transaction; the adapter does not replay the application callback. Network failures and ambiguous commit failures are never automatically retried.
 
 ## Development
 
@@ -181,15 +177,11 @@ docker compose stop
 
 The Compose database uses local-only port `2480` and development credentials. Integration tests create uniquely named disposable databases and drop them afterward. The test account must have database create/drop permissions. To target a dedicated external test server, set `ARCADEDB_URL`, `ARCADEDB_USERNAME` and `ARCADEDB_PASSWORD`.
 
-Tooling responsibilities: pnpm manages dependencies; Oxlint and Oxfmt handle linting and formatting; `tsc` checks types; tsdown produces the ESM bundle and declarations; Vitest runs tests; Changesets prepares versions and changelogs. npm publishes verified tarballs through GitHub Actions trusted publishing.
-
 ## Contributing
 
-Bug reports, feature proposals, documentation improvements, tests, and code contributions are welcome. Search [GitHub Issues](https://github.com/DevSnap/better-auth-arcadedb/issues) before opening a new report or proposal. Discuss substantial changes in an issue first; small fixes can go directly to a pull request from your fork.
+See [CONTRIBUTING.md](https://github.com/DevSnap/better-auth-arcadedb/blob/main/CONTRIBUTING.md) for bug reports, development setup and pull requests.
 
-See [CONTRIBUTING.md](https://github.com/DevSnap/better-auth-arcadedb/blob/main/CONTRIBUTING.md) for setup, checks, and the pull request process. Maintainers review contributions before merging.
-
-For technical background, see the [architecture decisions](https://github.com/DevSnap/better-auth-arcadedb/blob/main/docs/architecture.md) and the [manual first release / subsequent OIDC publishing guide](https://github.com/DevSnap/better-auth-arcadedb/blob/main/docs/releasing.md).
+Technical details: [architecture](https://github.com/DevSnap/better-auth-arcadedb/blob/main/docs/architecture.md) · [release guide](https://github.com/DevSnap/better-auth-arcadedb/blob/main/docs/releasing.md).
 
 ## License
 

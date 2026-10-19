@@ -2,9 +2,9 @@
 
 ## Scope and dependencies
 
-The package adapts Better Auth to the official ArcadeDB HTTP driver. The application owns the driver client and passes an `ArcadeDBDatabase` handle. Both the driver and Better Auth are peer dependencies to avoid duplicate runtime instances. No new HTTP transport is introduced.
+The application creates the official ArcadeDB driver client and passes an `ArcadeDBDatabase` handle to the adapter. The driver and Better Auth are peer dependencies to avoid duplicate runtime instances.
 
-Initial versions verified against published artifacts: Better Auth/test-utils 1.7.10, driver 0.3.0, server 26.10.2. Broader compatibility is not assumed.
+Verified versions: Better Auth/test-utils 1.7.10, driver 0.3.0 and server 26.10.2.
 
 ## Better Auth factory
 
@@ -18,7 +18,7 @@ Better Auth 1.7.10 converts null serial predicates to zero before dispatch. A sm
 
 ## Toolchain and distribution
 
-pnpm owns dependency resolution and the committed lockfile. Oxlint checks code, Oxfmt formats files and `tsc --noEmit` checks types independently. tsdown cleans and builds the single ESM entry point plus bundled declarations and source maps; Better Auth and the ArcadeDB driver remain external peer dependencies. Vitest separates unit tests from real-database integration tests. The tarball smoke test installs the pnpm-produced archive into an isolated npm consumer, checking public imports, types and declaration maps. Changesets prepares versions/changelogs; GitHub Actions publishes verified tarballs with npm OIDC.
+tsdown builds one ESM entry point with bundled declarations and source maps, leaving Better Auth and the driver external. The tarball includes TypeScript sources so source maps work in consuming projects. A smoke test installs the pnpm-produced archive into an isolated npm consumer and checks public imports, types and declaration maps.
 
 ## SQL and types
 
@@ -45,19 +45,21 @@ Only recognized `ConcurrentModificationException` errors are eligible for bounde
 
 ### Serial ID allocation
 
-Serial schemas initialize one counter row per physical model in `__better_auth_serial`, keyed by a unique `model` property with a `LONG` value. A standalone create opens a driver transaction, increments its counter with `RETURN AFTER`, then inserts the document. Creates inside application transactions use that transaction's handle. Explicit IDs advance the counter using `max(value, id)`. Both counter changes and documents roll back together. Safe-integer validation protects IDs/references and allocation stops before JSON/JavaScript integer precision is lost.
+Serial schemas initialize one counter row per physical model in `__better_auth_serial`, keyed by a unique `model` property with a `LONG` value initially set to zero. A standalone create opens a driver transaction, increments its counter with `RETURN AFTER`, then inserts the document. Creates inside application transactions use that transaction's handle. Explicit IDs advance the counter using `max(value, id)`. Both counter changes and documents roll back together. Safe-integer validation protects IDs/references and allocation stops before JSON/JavaScript integer precision is lost.
 
 Standalone allocation transactions retry recognized MVCC conflicts up to 31 times with capped exponential backoff plus jitter. ArcadeDB can check the document's unique ID index before reporting the counter page's MVCC conflict; a `DuplicatedKeyException` qualifies only for automatic IDs and only when structured `exceptionArgs` names that model's exact `model[id]` index. Other unique constraints, explicit IDs, transport errors and ambiguous commits are not replayed. Application transaction callbacks are never replayed.
 
 Serial IDs cannot be mutated after creation. Numeric references can be reassigned but not incremented. Allocation refuses missing/negative/null/exhausted counters, validates returned safe integers and requires the inserted ID to equal the assigned value. Standalone validation failures roll back the allocation transaction; application transaction errors propagate to the callback owner. Tests cover swapped metadata names, nullable predicates, mixed explicit/automatic allocations, duplicate explicit IDs, real transaction conflicts and invalid protocol responses. Serial scenarios use fresh databases per test to avoid ordering dependencies.
 
-Better Auth's own deterministic-ID single-use checks have a documented limitation under `serial` in 1.7.10 (some SAML, DPoP and private-key JWT paths); adapter conformance does not override that framework limitation or certify every plugin.
+Better Auth 1.7.10 documents that deterministic-ID single-use checks lose their guarantee under `serial` in some SAML, DPoP and private-key JWT paths. These paths require string IDs; the numeric adapter suites do not cover every plugin.
 
 Trigger probes against 26.10.2 ruled out the documented implementation: SQL bodies reject multiple statements, `UPDATE $record` on a BEFORE CREATE record fails with a null RID, and JavaScript execution shares a GraalVM context that rejects concurrent thread access. Adapter-owned transactions provide verified allocation without deploying Java classes or depending on these trigger paths. Direct SQL inserts must maintain the counter themselves.
 
 ## Schema generation
 
-Better Auth provides the actual schema, including plugin models. Generated DDL creates document types, properties and indexes without applying them. References are application IDs with lookup indexes, not graph edges or enforced foreign keys. Serial IDs and scalar references to IDs use `LONG`; ordinary numbers remain `DOUBLE`. Serial counter initialization is conditional and preserves existing values. Apply the script separately from concurrent application writes. Models with disabled migrations need externally provisioned counters. Schema evolution, strategy conversion, database cascades and native join optimization are outside this initial generator's guarantees.
+Better Auth provides the schema, including plugin models. Generated DDL creates document types, properties and indexes without applying them. References are application IDs with lookup indexes, not graph edges or enforced foreign keys. Serial IDs and scalar references to IDs use `LONG`; ordinary numbers remain `DOUBLE`. Serial counter initialization is conditional and preserves existing values. Models with disabled migrations are omitted and need their schema and counters provisioned separately.
+
+Apply DDL separately from concurrent application writes. The generator is additive: it does not migrate existing property types, convert ID strategies or implement database cascades. Relations use the factory's fallback queries rather than native joins.
 
 ## Verification
 
